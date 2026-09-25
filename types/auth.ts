@@ -6,6 +6,8 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
+  roles?: string[];
+  permissions?: string[];
   isActive: boolean;
   isEmailVerified: boolean;
   isAdminAuthorized: boolean;

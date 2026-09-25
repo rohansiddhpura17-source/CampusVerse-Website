@@ -180,7 +180,7 @@ export default function AspirantPredictorResultsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-2">
-            {prediction.recommendations.map((rec, idx) => (
+            {(prediction.recommendations || []).map((rec: string, idx: number) => (
               <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                 <span>{rec}</span>

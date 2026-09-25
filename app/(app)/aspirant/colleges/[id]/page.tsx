@@ -232,7 +232,7 @@ export default function AspirantCollegeDetailPage() {
           {!college.programs || college.programs.length === 0 ? (
             <p className="p-6 text-xs text-slate-500 text-center">No program details recorded.</p>
           ) : (
-            college.programs.map((prog) => (
+            college.programs.map((prog: any) => (
               <div key={prog.id} className="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">

@@ -32,11 +32,30 @@ import {
   Sparkles,
 } from 'lucide-react';
 
+import { hasAdministrativeAccess } from '@/components/guards/route-guards';
+
 interface NavItem {
   label: string;
   href: string;
   icon: React.ReactNode;
+  requiredPermission?: string;
 }
+
+const ADMIN_NAV_ITEMS: NavItem[] = [
+  { label: 'Admin Telemetry', href: '/admin/dashboard', icon: <LayoutDashboard className="w-4 h-4" />, requiredPermission: 'analytics.read' },
+  { label: 'User Directory', href: '/admin/users', icon: <Users className="w-4 h-4" />, requiredPermission: 'users.read' },
+  { label: 'Verifications', href: '/admin/verification', icon: <CheckCircle2 className="w-4 h-4" />, requiredPermission: 'users.update' },
+  { label: 'Moderation Queue', href: '/admin/moderation', icon: <ShieldAlert className="w-4 h-4" />, requiredPermission: 'moderation.read' },
+  { label: 'Safety Reports', href: '/admin/reports', icon: <FileText className="w-4 h-4" />, requiredPermission: 'moderation.read' },
+  { label: 'Marketplace', href: '/admin/marketplace', icon: <ShoppingBag className="w-4 h-4" />, requiredPermission: 'moderation.read' },
+  { label: 'Campus Events', href: '/admin/events', icon: <Calendar className="w-4 h-4" />, requiredPermission: 'events.read' },
+  { label: 'Jobs & Careers', href: '/admin/jobs', icon: <Briefcase className="w-4 h-4" />, requiredPermission: 'moderation.read' },
+  { label: 'Mentorship', href: '/admin/mentorship', icon: <UserCheck className="w-4 h-4" />, requiredPermission: 'mentorship.read' },
+  { label: 'Announcements', href: '/admin/announcements', icon: <Megaphone className="w-4 h-4" />, requiredPermission: 'events.read' },
+  { label: 'Analytics & BI', href: '/admin/analytics', icon: <TrendingUp className="w-4 h-4" />, requiredPermission: 'analytics.read' },
+  { label: 'Admin Profile', href: '/admin/profile', icon: <UserCircle className="w-4 h-4" /> },
+  { label: 'Platform Settings', href: '/admin/settings', icon: <Settings className="w-4 h-4" />, requiredPermission: 'settings.manage' },
+];
 
 export const AppSidebar: React.FC<{ className?: string }> = ({ className }) => {
   const { user } = useAuth();
@@ -44,7 +63,25 @@ export const AppSidebar: React.FC<{ className?: string }> = ({ className }) => {
 
   if (!user) return null;
 
+  const getFilteredAdminNav = (): NavItem[] => {
+    const isSuperAdmin = user.roles?.some((r) => r.toUpperCase() === 'SUPER_ADMIN');
+    // If super admin or legacy verified admin without granular permissions assigned, grant all
+    if (isSuperAdmin || (user.role === 'ADMIN' && user.isAdminAuthorized && (!user.permissions || user.permissions.length === 0))) {
+      return ADMIN_NAV_ITEMS;
+    }
+    const perms = new Set(user.permissions || []);
+    return ADMIN_NAV_ITEMS.filter((item) => {
+      if (!item.requiredPermission) return true;
+      return perms.has(item.requiredPermission);
+    });
+  };
+
   const getNavItems = (): NavItem[] => {
+    // If in the /admin section and user has administrative access, render filtered admin navigation
+    if (pathname.startsWith('/admin') && hasAdministrativeAccess(user)) {
+      return getFilteredAdminNav();
+    }
+
     switch (user.role) {
       case 'STUDENT':
         return [
@@ -88,23 +125,9 @@ export const AppSidebar: React.FC<{ className?: string }> = ({ className }) => {
           { label: 'Settings', href: '/alumni/settings', icon: <Settings className="w-4 h-4" /> },
         ];
       case 'ADMIN':
-        return [
-          { label: 'Admin Telemetry', href: '/admin/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-          { label: 'User Directory', href: '/admin/users', icon: <Users className="w-4 h-4" /> },
-          { label: 'Verifications', href: '/admin/verification', icon: <CheckCircle2 className="w-4 h-4" /> },
-          { label: 'Moderation Queue', href: '/admin/moderation', icon: <ShieldAlert className="w-4 h-4" /> },
-          { label: 'Safety Reports', href: '/admin/reports', icon: <FileText className="w-4 h-4" /> },
-          { label: 'Marketplace', href: '/admin/marketplace', icon: <ShoppingBag className="w-4 h-4" /> },
-          { label: 'Campus Events', href: '/admin/events', icon: <Calendar className="w-4 h-4" /> },
-          { label: 'Jobs & Careers', href: '/admin/jobs', icon: <Briefcase className="w-4 h-4" /> },
-          { label: 'Mentorship', href: '/admin/mentorship', icon: <UserCheck className="w-4 h-4" /> },
-          { label: 'Announcements', href: '/admin/announcements', icon: <Megaphone className="w-4 h-4" /> },
-          { label: 'Analytics & BI', href: '/admin/analytics', icon: <TrendingUp className="w-4 h-4" /> },
-          { label: 'Admin Profile', href: '/admin/profile', icon: <UserCircle className="w-4 h-4" /> },
-          { label: 'Platform Settings', href: '/admin/settings', icon: <Settings className="w-4 h-4" /> },
-        ];
+        return getFilteredAdminNav();
       default:
-        return [];
+        return hasAdministrativeAccess(user) ? getFilteredAdminNav() : [];
     }
   };
 
@@ -125,7 +148,7 @@ export const AppSidebar: React.FC<{ className?: string }> = ({ className }) => {
           <div>
             <span className="font-bold text-base text-slate-900 leading-none block">CampusVerse</span>
             <span className="text-[10px] font-semibold text-brand-600 tracking-wider uppercase">
-              {user.role} PORTAL
+              {pathname.startsWith('/admin') ? 'ADMIN CONSOLE' : `${user.role} PORTAL`}
             </span>
           </div>
         </Link>

@@ -226,7 +226,7 @@ export default function AspirantScholarshipDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4 space-y-2">
-            {scholarship.requirements.map((req, idx) => (
+            {(scholarship.requirements || []).map((req: string, idx: number) => (
               <div key={idx} className="flex items-start gap-2 text-xs text-slate-700">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
                 <span>{req}</span>

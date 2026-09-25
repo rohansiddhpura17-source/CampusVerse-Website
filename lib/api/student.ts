@@ -79,4 +79,35 @@ export const studentApi = {
   async commentPost(postId: string, content: string): Promise<CommunityComment> {
     return apiClient.post(`/posts/${postId}/comments`, { content });
   },
+
+  async getSkills(): Promise<any[]> {
+    return apiClient.get('/students/me/skills');
+  },
+
+  async addSkill(skillName: string, proficiencyLevel?: string): Promise<any> {
+    return apiClient.post('/students/me/skills', { skillName, proficiencyLevel });
+  },
+
+  async removeSkill(skillId: string): Promise<{ message: string }> {
+    return apiClient.delete(`/students/me/skills/${skillId}`);
+  },
+
+  async getAcademicRecords(): Promise<any[]> {
+    return apiClient.get('/students/me/academic-records');
+  },
+
+  async getCertifications(): Promise<any[]> {
+    return apiClient.get('/students/me/certifications');
+  },
+
+  async addCertification(data: {
+    title: string;
+    issuingOrganization: string;
+    issueDate?: string;
+    expiryDate?: string;
+    credentialId?: string;
+    credentialUrl?: string;
+  }): Promise<any> {
+    return apiClient.post('/students/me/certifications', data);
+  },
 };

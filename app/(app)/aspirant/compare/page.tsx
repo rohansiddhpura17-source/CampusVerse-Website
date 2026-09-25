@@ -280,7 +280,7 @@ export default function AspirantComparePage() {
                   <td key={c.id} className="p-4 text-slate-700">
                     <p className="font-bold text-slate-900">{c.programs?.length || 0} Programs</p>
                     <div className="space-y-1 mt-1.5">
-                      {(c.programs || []).slice(0, 3).map((p, idx) => (
+                      {(c.programs || []).slice(0, 3).map((p: any, idx: number) => (
                         <p key={idx} className="text-[11px] text-slate-500 line-clamp-1">
                           • {p.name} ({p.degree})
                         </p>

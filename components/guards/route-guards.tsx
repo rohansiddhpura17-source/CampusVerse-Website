@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { UserRole } from '@/types/auth';
+import { UserRole, User } from '@/types/auth';
 
 interface GuardProps {
   children: React.ReactNode;
@@ -16,6 +16,33 @@ export function LoadingScreen({ message = 'Loading CampusVerse...' }: { message?
       <p className="text-sm font-medium animate-pulse">{message}</p>
     </div>
   );
+}
+
+export const ADMINISTRATIVE_ROLES = [
+  'SUPER_ADMIN',
+  'ADMIN',
+  'MODERATOR',
+  'CONTENT_MANAGER',
+  'SUPPORT_ADMIN',
+  'ANALYTICS_ADMIN',
+];
+
+/**
+ * Checks whether the user has effective administrative access based on:
+ * 1. Granular RBAC roles (SUPER_ADMIN, ADMIN, MODERATOR, CONTENT_MANAGER, SUPPORT_ADMIN, ANALYTICS_ADMIN)
+ * 2. Granted administrative permissions
+ * 3. Legacy role 'ADMIN' with isAdminAuthorized === true
+ */
+export function hasAdministrativeAccess(user?: User | null): boolean {
+  if (!user) return false;
+  if (user.role === 'ADMIN' && user.isAdminAuthorized) return true;
+  if (user.roles && user.roles.some((r: string) => ADMINISTRATIVE_ROLES.includes(r.toUpperCase()))) {
+    return true;
+  }
+  if (user.permissions && user.permissions.length > 0) {
+    return true;
+  }
+  return false;
 }
 
 export function getRoleDashboard(role: UserRole): string {
@@ -31,6 +58,13 @@ export function getRoleDashboard(role: UserRole): string {
     default:
       return '/';
   }
+}
+
+export function getUserDashboard(user: User): string {
+  if (hasAdministrativeAccess(user)) {
+    return '/admin/dashboard';
+  }
+  return getRoleDashboard(user.role);
 }
 
 /**
@@ -50,10 +84,10 @@ export function PublicRoute({ children }: GuardProps) {
       pathname.startsWith('/auth/') &&
       pathname !== '/auth/unauthorized'
     ) {
-      if (user.role === 'ADMIN' && !user.isAdminAuthorized) {
+      if (user.role === 'ADMIN' && !user.isAdminAuthorized && !hasAdministrativeAccess(user)) {
         return;
       }
-      const targetDashboard = getRoleDashboard(user.role);
+      const targetDashboard = getUserDashboard(user);
       router.replace(targetDashboard);
     }
   }, [status, user, pathname, router]);
@@ -109,13 +143,17 @@ export function RoleRoute({
     }
 
     if (status === 'authenticated' && user) {
-      if (!allowedRoles.includes(user.role)) {
+      const isAllowed =
+        allowedRoles.includes(user.role) ||
+        (allowedRoles.includes('ADMIN') && hasAdministrativeAccess(user));
+
+      if (!isAllowed) {
         router.replace('/auth/unauthorized');
         return;
       }
 
-      // Strict check for Admin elevation
-      if (user.role === 'ADMIN' && !user.isAdminAuthorized) {
+      // Strict check for unverified legacy Admin without granular roles
+      if (user.role === 'ADMIN' && !user.isAdminAuthorized && !hasAdministrativeAccess(user)) {
         router.replace('/auth/unauthorized?reason=admin_authorization_required');
       }
     }
@@ -125,11 +163,16 @@ export function RoleRoute({
     return <LoadingScreen message="Checking permissions..." />;
   }
 
-  if (status === 'unauthenticated' || !user || !allowedRoles.includes(user.role)) {
+  const isAllowed =
+    user &&
+    (allowedRoles.includes(user.role) ||
+      (allowedRoles.includes('ADMIN') && hasAdministrativeAccess(user)));
+
+  if (status === 'unauthenticated' || !user || !isAllowed) {
     return null;
   }
 
-  if (user.role === 'ADMIN' && !user.isAdminAuthorized) {
+  if (user.role === 'ADMIN' && !user.isAdminAuthorized && !hasAdministrativeAccess(user)) {
     return null;
   }
 
@@ -149,5 +192,30 @@ export function AlumniRoute({ children }: GuardProps) {
 }
 
 export function AdminRoute({ children }: GuardProps) {
-  return <RoleRoute allowedRoles={['ADMIN']}>{children}</RoleRoute>;
+  const { user, status } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.replace(`/auth/login?redirect=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    if (status === 'authenticated' && user) {
+      if (!hasAdministrativeAccess(user)) {
+        router.replace('/auth/unauthorized');
+      }
+    }
+  }, [status, user, router, pathname]);
+
+  if (status === 'loading') {
+    return <LoadingScreen message="Checking administrative permissions..." />;
+  }
+
+  if (status === 'unauthenticated' || !user || !hasAdministrativeAccess(user)) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

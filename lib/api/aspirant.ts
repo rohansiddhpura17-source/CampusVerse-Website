@@ -66,4 +66,20 @@ export const aspirantApi = {
   async updateAspirantProfile(data: Partial<AspirantProfile>): Promise<AspirantProfile> {
     return apiClient.patch('/aspirant/profile', data);
   },
+
+  async getRecommendations(): Promise<any[]> {
+    return apiClient.get('/aspirant/recommendations');
+  },
+
+  async generateRecommendations(): Promise<{ count: number; recommendations: any[] }> {
+    return apiClient.post('/aspirant/recommendations/generate', {});
+  },
+
+  async getApplications(): Promise<any[]> {
+    return apiClient.get('/aspirant/applications');
+  },
+
+  async applyToCollege(data: { collegeId: string; program: string; notes?: string }): Promise<any> {
+    return apiClient.post('/aspirant/applications', data);
+  },
 };

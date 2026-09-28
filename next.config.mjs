@@ -5,7 +5,15 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'images.unsplash.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'eaqwchuugwaeaftjzfnf.supabase.co',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.googleusercontent.com',
       },
     ],
   },
@@ -24,6 +32,33 @@ const nextConfig = {
     ];
   },
   async headers() {
+    // Environment-aware Content Security Policy
+    // Fail-closed: only explicit development mode permits unsafe-eval and localhost origins
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    const scriptSrc = isDevelopment
+      ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+      : "script-src 'self' 'unsafe-inline'";
+
+    const connectSrc = isDevelopment
+      ? "connect-src 'self' http://localhost:4000 http://127.0.0.1:4000 https://campusverse-api-k5ny.onrender.com https://eaqwchuugwaeaftjzfnf.supabase.co"
+      : "connect-src 'self' https://campusverse-api-k5ny.onrender.com https://eaqwchuugwaeaftjzfnf.supabase.co";
+
+    const cspDirectives = [
+      "default-src 'self'",
+      scriptSrc,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://images.unsplash.com https://eaqwchuugwaeaftjzfnf.supabase.co https://*.googleusercontent.com",
+      "font-src 'self' data:",
+      connectSrc,
+      "worker-src 'self' blob:",
+      "frame-ancestors 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+      ...(isDevelopment ? [] : ["upgrade-insecure-requests"]),
+    ];
+
     return [
       {
         source: '/(.*)',
@@ -42,7 +77,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
+            value: 'camera=(), microphone=(), geolocation=(), browsing-topics=(), payment=(), usb=()',
           },
           {
             key: 'Strict-Transport-Security',
@@ -50,8 +85,7 @@ const nextConfig = {
           },
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; font-src 'self' https: data:; connect-src 'self' http://127.0.0.1:4000 http://localhost:4000 https://*; frame-ancestors 'none'; object-src 'none'; base-uri 'self'; form-action 'self';",
+            value: cspDirectives.join('; '),
           },
         ],
       },

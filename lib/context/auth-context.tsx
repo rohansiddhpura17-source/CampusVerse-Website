@@ -1,14 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { User, UserRole } from '@/types/auth';
+import { User } from '@/types/auth';
 import { authApi, LoginPayload, RegisterPayload } from '@/lib/api/auth';
 
 export type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
 
 interface AuthContextType {
   user: User | null;
-  token: string | null;
   status: AuthStatus;
   login: (credentials: LoginPayload) => Promise<User>;
   register: (data: RegisterPayload) => Promise<User>;
@@ -20,27 +19,17 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [status, setStatus] = useState<AuthStatus>('loading');
 
   const refreshSession = useCallback(async (): Promise<User | null> => {
     try {
-      const storedToken = localStorage.getItem('campusverse_token');
-      if (!storedToken) {
-        setStatus('unauthenticated');
-        setUser(null);
-        setToken(null);
-        return null;
-      }
-      setToken(storedToken);
+      // Browser automatically transmits HttpOnly session cookie via withCredentials
       const currentUser = await authApi.getMe();
       setUser(currentUser);
       setStatus('authenticated');
       return currentUser;
     } catch {
-      localStorage.removeItem('campusverse_token');
       setUser(null);
-      setToken(null);
       setStatus('unauthenticated');
       return null;
     }
@@ -54,8 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('loading');
     try {
       const response = await authApi.login(credentials);
-      localStorage.setItem('campusverse_token', response.token);
-      setToken(response.token);
       setUser(response.user);
       setStatus('authenticated');
       return response.user;
@@ -69,8 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('loading');
     try {
       const response = await authApi.register(data);
-      localStorage.setItem('campusverse_token', response.token);
-      setToken(response.token);
       setUser(response.user);
       setStatus('authenticated');
       return response.user;
@@ -85,9 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await authApi.logout();
     } finally {
-      localStorage.removeItem('campusverse_token');
       setUser(null);
-      setToken(null);
       setStatus('unauthenticated');
     }
   };
@@ -96,7 +79,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-        token,
         status,
         login,
         register,

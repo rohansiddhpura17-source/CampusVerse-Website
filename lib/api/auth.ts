@@ -14,7 +14,7 @@ export interface LoginPayload {
 }
 
 export interface AuthResponse {
-  token: string;
+  token?: string;
   user: User;
 }
 
@@ -32,13 +32,7 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    try {
-      await apiClient.post('/auth/logout', {});
-    } finally {
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('campusverse_token');
-      }
-    }
+    await apiClient.post('/auth/logout', {});
   },
 
   async sendOtp(email: string, purpose = 'EMAIL_VERIFICATION'): Promise<{ message: string }> {

@@ -8,17 +8,15 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
+  withCredentials: true,
   timeout: 60000,
 });
 
-// Request Interceptor: Attach JWT Bearer Token
+// Request Interceptor: Attach defense-in-depth client identification header
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('campusverse_token');
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
+    if (config.headers) {
+      config.headers['X-CampusVerse-Client'] = 'web';
     }
     return config;
   },
@@ -36,9 +34,8 @@ apiClient.interceptors.response.use(
   },
   (error: AxiosError<any>) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      // Clear token and emit auth error if not already on an auth page
+      // Redirect to login if not already on an auth page
       if (!window.location.pathname.startsWith('/auth/')) {
-        localStorage.removeItem('campusverse_token');
         window.location.href = `/auth/login?redirect=${encodeURIComponent(window.location.pathname)}`;
       }
     }

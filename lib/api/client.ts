@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+// Fallback must be the production API: Vercel builds without NEXT_PUBLIC_API_URL would otherwise hit localhost and be CSP-blocked.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://campusverse-api-k5ny.onrender.com/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
